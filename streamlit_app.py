@@ -220,11 +220,34 @@ with tab3:
         if uploaded is not None:
             df = pd.read_csv(uploaded)
             features = meta["features"]
-            missing = [c for c in features if c not in df.columns]
-            if missing:
-                st.error(f"Missing required columns: {missing}")
-            else:
-                probs = model.predict_proba(df[features])[:, 1]
+            if "g1_t1" in df.columns and "g1_t2" in df.columns:
+    df["g1_score_diff"] = df["g1_t1"] - df["g1_t2"]
+    df["g1_total"] = df["g1_t1"] + df["g1_t2"]
+    df["t1_win_pct_g1"] = df["g1_t1"] / df["g1_total"].replace(0, 1)
+
+if (
+    "team_one_most_consecutive_points_game_1" in df.columns and
+    "team_two_most_consecutive_points_game_1" in df.columns
+):
+    df["consec_g1_diff"] = (
+        df["team_one_most_consecutive_points_game_1"]
+        - df["team_two_most_consecutive_points_game_1"]
+    )
+
+if (
+    "team_one_game_points_game_1" in df.columns and
+    "team_two_game_points_game_1" in df.columns
+):
+    df["game_pts_g1_diff"] = (
+        df["team_one_game_points_game_1"]
+        - df["team_two_game_points_game_1"]
+    )
+
+missing = [c for c in features if c not in df.columns]
+if missing:
+    st.error(f"Missing required columns: {missing}")
+else:
+    probs = model.predict_proba(df[features])[:, 1]
                 preds = (probs >= 0.5).astype(int)
                 out = df.copy()
                 out["team_1_win_probability"] = probs
