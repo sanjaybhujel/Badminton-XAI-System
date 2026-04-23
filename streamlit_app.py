@@ -1,4 +1,3 @@
-
 import json
 from pathlib import Path
 
@@ -102,13 +101,19 @@ def compute_derived_fields(row):
         row["g1_total"] = row["g1_t1"] + row["g1_t2"]
         row["t1_win_pct_g1"] = (row["g1_t1"] / row["g1_total"]) if row["g1_total"] else 0.0
 
-    if "team_one_most_consecutive_points_game_1" in row and "team_two_most_consecutive_points_game_1" in row:
+    if (
+        "team_one_most_consecutive_points_game_1" in row
+        and "team_two_most_consecutive_points_game_1" in row
+    ):
         row["consec_g1_diff"] = (
             row["team_one_most_consecutive_points_game_1"]
             - row["team_two_most_consecutive_points_game_1"]
         )
 
-    if "team_one_game_points_game_1" in row and "team_two_game_points_game_1" in row:
+    if (
+        "team_one_game_points_game_1" in row
+        and "team_two_game_points_game_1" in row
+    ):
         row["game_pts_g1_diff"] = (
             row["team_one_game_points_game_1"]
             - row["team_two_game_points_game_1"]
@@ -117,8 +122,40 @@ def compute_derived_fields(row):
     return row
 
 
+def compute_derived_columns(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    if "g1_t1" in df.columns and "g1_t2" in df.columns:
+        df["g1_score_diff"] = df["g1_t1"] - df["g1_t2"]
+        df["g1_total"] = df["g1_t1"] + df["g1_t2"]
+        safe_total = df["g1_total"].replace(0, pd.NA)
+        df["t1_win_pct_g1"] = (df["g1_t1"] / safe_total).fillna(0.0)
+
+    if (
+        "team_one_most_consecutive_points_game_1" in df.columns
+        and "team_two_most_consecutive_points_game_1" in df.columns
+    ):
+        df["consec_g1_diff"] = (
+            df["team_one_most_consecutive_points_game_1"]
+            - df["team_two_most_consecutive_points_game_1"]
+        )
+
+    if (
+        "team_one_game_points_game_1" in df.columns
+        and "team_two_game_points_game_1" in df.columns
+    ):
+        df["game_pts_g1_diff"] = (
+            df["team_one_game_points_game_1"]
+            - df["team_two_game_points_game_1"]
+        )
+
+    return df
+
+
 st.title("🏸 Badminton In-Match Prediction Dashboard")
-st.caption("Predict the final match winner after Game 1 and present the full model story in one hosted Streamlit app.")
+st.caption(
+    "Predict the final match winner after Game 1 and present the full model story in one hosted Streamlit app."
+)
 
 model, model_label = load_model()
 meta = load_metadata()
@@ -144,6 +181,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 
 with tab1:
     left, right = st.columns([1.1, 1])
+
     with left:
         st.subheader("What this app does")
         st.markdown(
@@ -155,6 +193,7 @@ with tab1:
             - **EDA charts for presentation and defense**
             """
         )
+
         if meta:
             st.subheader("Model summary")
             c1, c2, c3 = st.columns(3)
@@ -164,6 +203,7 @@ with tab1:
             st.json(meta)
         else:
             st.info("Add `models/model_metadata.json` to display task metadata.")
+
     with right:
         metrics_path = OUTPUTS_DIR / "final_test_metrics.csv"
         if available_csv(metrics_path):
@@ -174,7 +214,8 @@ with tab1:
 
 with tab2:
     st.subheader("Single match prediction")
-    if not model or not meta:
+
+    if model is None or meta is None:
         st.warning("Add the model files and metadata first.")
     else:
         features = meta["features"]
@@ -183,16 +224,25 @@ with tab2:
         with st.form("predict_form"):
             cols = st.columns(2)
             user_row = {}
+
             for i, feat in enumerate(features):
                 with cols[i % 2]:
-                    user_row[feat] = st.number_input(feat, value=float(defaults.get(feat, 0.0)), step=1.0 if "pct" not in feat else 0.01)
+                    step_value = 0.01 if "pct" in feat else 1.0
+                    user_row[feat] = st.number_input(
+                        feat,
+                        value=float(defaults.get(feat, 0.0)),
+                        step=step_value,
+                    )
+
             auto_derive = st.checkbox("Auto-recompute derived Game 1 fields", value=True)
             submitted = st.form_submit_button("Predict")
 
         if submitted:
             row = dict(user_row)
+
             if auto_derive:
                 row = compute_derived_fields(row)
+
             x = pd.DataFrame([row])[features]
             prob = float(model.predict_proba(x)[0, 1])
             pred = int(prob >= 0.5)
@@ -207,53 +257,43 @@ with tab2:
 with tab3:
     st.subheader("Batch prediction from CSV")
     st.write("Upload a CSV containing the required feature columns.")
-    if not model or not meta:
+
+    if model is None or meta is None:
         st.warning("Add the model files and metadata first.")
     else:
         uploaded = st.file_uploader("Upload CSV", type=["csv"])
-        st.download_button(
-            "Download sample input CSV",
-            data=(ROOT / "sample_batch_input.csv").read_bytes(),
-            file_name="sample_batch_input.csv",
-            mime="text/csv",
-        )
+
+        sample_path = ROOT / "sample_batch_input.csv"
+        if sample_path.exists():
+            st.download_button(
+                "Download sample input CSV",
+                data=sample_path.read_bytes(),
+                file_name="sample_batch_input.csv",
+                mime="text/csv",
+            )
+
         if uploaded is not None:
             df = pd.read_csv(uploaded)
+            df = compute_derived_columns(df)
+
             features = meta["features"]
-            if "g1_t1" in df.columns and "g1_t2" in df.columns:
-    df["g1_score_diff"] = df["g1_t1"] - df["g1_t2"]
-    df["g1_total"] = df["g1_t1"] + df["g1_t2"]
-    df["t1_win_pct_g1"] = df["g1_t1"] / df["g1_total"].replace(0, 1)
+            missing = [c for c in features if c not in df.columns]
 
-if (
-    "team_one_most_consecutive_points_game_1" in df.columns and
-    "team_two_most_consecutive_points_game_1" in df.columns
-):
-    df["consec_g1_diff"] = (
-        df["team_one_most_consecutive_points_game_1"]
-        - df["team_two_most_consecutive_points_game_1"]
-    )
-
-if (
-    "team_one_game_points_game_1" in df.columns and
-    "team_two_game_points_game_1" in df.columns
-):
-    df["game_pts_g1_diff"] = (
-        df["team_one_game_points_game_1"]
-        - df["team_two_game_points_game_1"]
-    )
-
-missing = [c for c in features if c not in df.columns]
-if missing:
-    st.error(f"Missing required columns: {missing}")
-else:
-    probs = model.predict_proba(df[features])[:, 1]
+            if missing:
+                st.error(f"Missing required columns: {missing}")
+            else:
+                probs = model.predict_proba(df[features])[:, 1]
                 preds = (probs >= 0.5).astype(int)
+
                 out = df.copy()
                 out["team_1_win_probability"] = probs
                 out["predicted_class"] = preds
-                out["prediction_label"] = out["predicted_class"].map({1: "Team 1 wins", 0: "Team 2 wins"})
+                out["prediction_label"] = out["predicted_class"].map(
+                    {1: "Team 1 wins", 0: "Team 2 wins"}
+                )
+
                 st.dataframe(out, use_container_width=True)
+
                 st.download_button(
                     "Download predictions CSV",
                     data=out.to_csv(index=False).encode("utf-8"),
@@ -263,6 +303,7 @@ else:
 
 with tab4:
     st.subheader("Model results")
+
     for fname in CSV_FILES:
         path = OUTPUTS_DIR / fname
         if available_csv(path):
@@ -272,16 +313,25 @@ with tab4:
     for fname in PERFORMANCE_FILES:
         path = OUTPUTS_DIR / fname
         if available_image(path):
-            st.image(str(path), caption=fname.replace("_", " ").replace(".png", "").title(), use_container_width=True)
+            st.image(
+                str(path),
+                caption=fname.replace("_", " ").replace(".png", "").title(),
+                use_container_width=True,
+            )
 
 with tab5:
     st.subheader("Explainability and EDA")
     st.markdown("Use this section for project defense, report screenshots, and dashboard storytelling.")
+
     st.markdown("### Explainability")
     for fname in EXPLAINABILITY_FILES:
         path = OUTPUTS_DIR / fname
         if available_image(path):
-            st.image(str(path), caption=fname.replace("_", " ").replace(".png", "").title(), use_container_width=True)
+            st.image(
+                str(path),
+                caption=fname.replace("_", " ").replace(".png", "").title(),
+                use_container_width=True,
+            )
 
     shap_dep_files = sorted(OUTPUTS_DIR.glob("shap_dependence_*.png"))
     for path in shap_dep_files:
@@ -291,4 +341,8 @@ with tab5:
     for fname in EDA_FILES:
         path = OUTPUTS_DIR / fname
         if available_image(path):
-            st.image(str(path), caption=fname.replace("_", " ").replace(".png", "").title(), use_container_width=True)
+            st.image(
+                str(path),
+                caption=fname.replace("_", " ").replace(".png", "").title(),
+                use_container_width=True,
+            )
