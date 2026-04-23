@@ -1,0 +1,4 @@
+g1_t1,g1_t2,g1_score_diff,g1_total,t1_win_pct_g1,round_num,tournament_tier
+21,18,3,39,0.5385,6,4
+18,21,-3,39,0.4615,5,3
+21,15,6,36,0.5833,7,5

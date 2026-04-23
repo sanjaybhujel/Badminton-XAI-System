@@ -1,0 +1,13 @@
+g1_t1
+g1_t2
+g1_score_diff
+g1_total
+t1_win_pct_g1
+round_num
+tournament_tier
+team_one_most_consecutive_points_game_1
+team_two_most_consecutive_points_game_1
+team_one_game_points_game_1
+team_two_game_points_game_1
+consec_g1_diff
+game_pts_g1_diff
