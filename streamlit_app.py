@@ -225,14 +225,34 @@ with tab2:
             cols = st.columns(2)
             user_row = {}
 
-            for i, feat in enumerate(features):
-                with cols[i % 2]:
-                    step_value = 0.01 if "pct" in feat else 1.0
-                    user_row[feat] = st.number_input(
-                        feat,
-                        value=float(defaults.get(feat, 0.0)),
-                        step=step_value,
-                    )
+            # Feature descriptions for user-friendly labels
+feature_labels = {
+    "g1_t1": "Team 1 Score (Game 1)",
+    "g1_t2": "Team 2 Score (Game 1)",
+    "g1_score_diff": "Score Difference (Team1 - Team2)",
+    "g1_total": "Total Points in Game 1",
+    "t1_win_pct_g1": "Team 1 Win % in Game 1 (0–1)",
+    "round_num": "Tournament Round (e.g., 6 = Quarterfinal)",
+    "tournament_tier": "Tournament Tier (1–6, higher = stronger tournament)",
+    "team_one_most_consecutive_points_game_1": "Team 1 Max Consecutive Points (Game 1)",
+    "team_two_most_consecutive_points_game_1": "Team 2 Max Consecutive Points (Game 1)",
+    "team_one_game_points_game_1": "Team 1 Game Points Won (Game 1)",
+    "team_two_game_points_game_1": "Team 2 Game Points Won (Game 1)",
+    "consec_g1_diff": "Difference in Consecutive Points (T1 - T2)",
+    "game_pts_g1_diff": "Difference in Game Points (T1 - T2)",
+}
+
+for i, feat in enumerate(features):
+    with cols[i % 2]:
+        step_value = 0.01 if "pct" in feat else 1.0
+
+        label = feature_labels.get(feat, feat)
+
+        user_row[feat] = st.number_input(
+            label,
+            value=float(defaults.get(feat, 0.0)),
+            step=step_value,
+        )
 
             auto_derive = st.checkbox("Auto-recompute derived Game 1 fields", value=True)
             submitted = st.form_submit_button("Predict")
