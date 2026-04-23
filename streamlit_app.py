@@ -252,7 +252,7 @@ with tab2:
                         step=step_value,
                     )
 
-            # ✅ THIS MUST ALIGN WITH for-loop (NOT inside it)
+            
             auto_derive = st.checkbox(
                 "Auto-recompute derived Game 1 fields", value=True
             )
@@ -312,11 +312,12 @@ with tab3:
                 out["predicted_class"] = preds
                 out["prediction_label"] = out["predicted_class"].map(
                     {1: "Team 1 wins", 0: "Team 2 wins"}
-                )out["confidence"] = pd.cut(
-    out["team_1_win_probability"],
-    bins=[0, 0.55, 0.7, 1],
-    labels=["Low", "Medium", "High"]
-)
+                )
+                out["confidence"] = pd.cut(
+                out["team_1_win_probability"],
+                bins=[0, 0.55, 0.7, 1],
+                labels=["Low", "Medium", "High"]
+                )
 
                 st.dataframe(out, use_container_width=True)
 
