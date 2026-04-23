@@ -1,4 +1,4 @@
-g1_t1,g1_t2,g1_score_diff,g1_total,t1_win_pct_g1,round_num,tournament_tier
-21,18,3,39,0.5385,6,4
-18,21,-3,39,0.4615,5,3
-21,15,6,36,0.5833,7,5
+g1_t1,g1_t2,g1_score_diff,g1_total,t1_win_pct_g1,round_num,tournament_tier,team_one_most_consecutive_points_game_1,team_two_most_consecutive_points_game_1,team_one_game_points_game_1,team_two_game_points_game_1
+21,18,3,39,0.5385,6,4,5,2,1,0
+18,21,-3,39,0.4615,5,3,2,5,0,1
+21,15,6,36,0.5833,7,5,6,2,1,0
